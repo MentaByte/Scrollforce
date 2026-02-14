@@ -76,7 +76,6 @@
             border: 2px solid #ddd;
             border-radius: 10px;
             text-align: center;
-            text-transform: uppercase;
             letter-spacing: 2px;
             margin-bottom: 20px;
             transition: border-color 0.3s;
@@ -170,7 +169,7 @@
             z-index: 9999;
         }
 
-        /* Botón de configuración */
+        /* Botón de configuración (oculto por defecto) */
         #configButton {
             position: fixed;
             top: 20px;
@@ -191,12 +190,19 @@
             transition: background-color 0.3s;
         }
 
-        #configButton.show {
-            display: flex;
+        /* Área invisible para long press */
+        #configTrigger {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            z-index: 999;
+            display: none;
         }
 
-        #configButton:active {
-            background-color: rgba(255, 255, 255, 0.3);
+        #configTrigger.show {
+            display: block;
         }
 
         /* Botón de instalación */
@@ -262,6 +268,7 @@
     </div>
 
     <div id="touchCounter">0</div>
+    <div id="configTrigger"></div>
     <button id="configButton">⚙️</button>
     <button id="installButton">Instalar App</button>
     <img id="fullScreenImage" alt="Forzaje">
@@ -270,9 +277,9 @@
         // Configuración
         const SUPABASE_URL = 'https://zgatennqbagmyfbpiakr.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpnYXRlbm5xYmFnbXlmYnBpYWtyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMTg3NTEsImV4cCI6MjA4NjU5NDc1MX0.5c_IoL3_PM1zwFsuvblkoCoWbP9-4BSaMcIwSasLprw';
-        const TOTAL_IMAGES = 9;
-        const FORCE_IMAGE_INDEX = 4; // Imagen 4.jpg por defecto
-        const TOUCH_THRESHOLD = 10;
+        const TOTAL_IMAGES = 20;
+        let FORCE_IMAGE_INDEX = 4; // Imagen 4.jpg por defecto
+        let TOUCH_THRESHOLD = 10; // Configurable
 
         // Estado global
         let touchCount = 0;
@@ -291,10 +298,15 @@
         const touchCounterElement = document.getElementById('touchCounter');
         const fullScreenImage = document.getElementById('fullScreenImage');
         const configButton = document.getElementById('configButton');
+        const configTrigger = document.getElementById('configTrigger');
         const installButton = document.getElementById('installButton');
 
         // IndexedDB
         let db;
+
+        // Long press timer
+        let longPressTimer = null;
+        const LONG_PRESS_DURATION = 3000; // 3 segundos
 
         function initDB() {
             return new Promise((resolve, reject) => {
@@ -313,6 +325,19 @@
                     }
                 };
             });
+        }
+
+        // Cargar configuración guardada
+        function loadConfig() {
+            const savedForceIndex = localStorage.getItem('forceImageIndex');
+            const savedTouchThreshold = localStorage.getItem('touchThreshold');
+            
+            if (savedForceIndex) {
+                FORCE_IMAGE_INDEX = parseInt(savedForceIndex);
+            }
+            if (savedTouchThreshold) {
+                TOUCH_THRESHOLD = parseInt(savedTouchThreshold);
+            }
         }
 
         // Device info
@@ -357,7 +382,7 @@
                 sessionId = data.session_id;
 
                 activationScreen.classList.remove('active');
-                configButton.classList.add('show');
+                configTrigger.classList.add('show');
                 
                 await loadGallery();
 
@@ -400,8 +425,6 @@
                 console.error('Error validando sesión:', error);
                 localStorage.removeItem('activationCode');
                 localStorage.removeItem('sessionId');
-                activationScreen.classList.add('active');
-                configButton.classList.remove('show');
                 return false;
             }
         }
@@ -525,9 +548,33 @@
             window.location.href = './config.html';
         });
 
+        // Long press en esquina superior derecha para mostrar config
+        configTrigger.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            longPressTimer = setTimeout(() => {
+                if (navigator.vibrate) navigator.vibrate(100);
+                window.location.href = './config.html';
+            }, LONG_PRESS_DURATION);
+        });
+
+        configTrigger.addEventListener('touchend', () => {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        });
+
+        configTrigger.addEventListener('touchmove', () => {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+        });
+
         // Init
         document.addEventListener('DOMContentLoaded', async () => {
             await initDB();
+            loadConfig();
 
             const savedCode = localStorage.getItem('activationCode');
             
@@ -537,9 +584,13 @@
                 
                 if (isValid) {
                     activationScreen.classList.remove('active');
-                    configButton.classList.add('show');
+                    configTrigger.classList.add('show');
                     await loadGallery();
+                } else {
+                    activationScreen.classList.add('active');
                 }
+            } else {
+                activationScreen.classList.add('active');
             }
 
             if (window.matchMedia('(display-mode: standalone)').matches) {
