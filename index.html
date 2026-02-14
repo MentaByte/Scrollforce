@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Login - Licencia</title>
+
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      padding: 20px;
+    }
+    .box {
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      margin-top: 10px;
+      text-transform: uppercase;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      margin-top: 10px;
+      background: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+    .msg {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #ccc;
+      min-height: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="box">
+    <h2>Activar licencia</h2>
+    <p>Ingresa tu código para activar la app</p>
+
+    <input id="codeInput" placeholder="CÓDIGO" autocomplete="off" />
+    <button id="loginBtn">Activar</button>
+
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <script>
+    const FUNCTION_URL = "https://zgatennqbagmyfbpiakr.supabase.co/functions/v1/loginWithCode";
+
+    function getDeviceId() {
+      let deviceId = localStorage.getItem("device_id");
+      if (!deviceId) {
+        deviceId = crypto.randomUUID();
+        localStorage.setItem("device_id", deviceId);
+      }
+      return deviceId;
+    }
+
+    async function login() {
+      const code = document.getElementById("codeInput").value.trim().toUpperCase();
+      const msg = document.getElementById("msg");
+
+      if (!code) {
+        msg.textContent = "Ingresa un código válido.";
+        return;
+      }
+
+      msg.textContent = "Validando licencia...";
+
+      try {
+        const device_id = getDeviceId();
+
+        const res = await fetch(FUNCTION_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, device_id })
+        });
+
+        const data = await res.json();
+
+        if (!data.ok) {
+          msg.textContent = data.error || "Error de licencia.";
+          return;
+        }
+
+        // Guardar sesión local
+        localStorage.setItem("license_code", data.code);
+        localStorage.setItem("session_id", data.session_id);
+
+        msg.textContent = "Licencia activada. Entrando...";
+
+        setTimeout(() => {
+          window.location.href = "./settings.html";
+        }, 600);
+
+      } catch (err) {
+        msg.textContent = "Error de conexión.";
+      }
+    }
+
+    document.getElementById("loginBtn").addEventListener("click", login);
+
+    document.getElementById("codeInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") login();
+    });
+  </script>
+</body>
+</html>
