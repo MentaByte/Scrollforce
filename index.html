@@ -143,7 +143,7 @@
             flex: 0 0 auto;
         }
 
-        /* Contador de toques */
+        /* Contador de toques - clickeable */
         #touchCounter {
             position: fixed;
             bottom: 10px;
@@ -154,6 +154,8 @@
             border-radius: 10px;
             z-index: 1000;
             font-size: 12px;
+            cursor: pointer;
+            user-select: none;
         }
 
         /* Imagen a pantalla completa (forzaje) */
@@ -169,40 +171,9 @@
             z-index: 9999;
         }
 
-        /* Botón de configuración (oculto por defecto) */
+        /* Botón de configuración (oculto) */
         #configButton {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            background-color: rgba(255, 255, 255, 0.2);
-            border: none;
-            border-radius: 50%;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            z-index: 1000;
             display: none;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(10px);
-            transition: background-color 0.3s;
-        }
-
-        /* Área invisible para long press */
-        #configTrigger {
-            position: fixed;
-            top: 0;
-            right: 0;
-            width: 100px;
-            height: 100px;
-            z-index: 999;
-            display: none;
-        }
-
-        #configTrigger.show {
-            display: block;
         }
 
         /* Botón de instalación */
@@ -268,8 +239,6 @@
     </div>
 
     <div id="touchCounter">0</div>
-    <div id="configTrigger"></div>
-    <button id="configButton">⚙️</button>
     <button id="installButton">Instalar App</button>
     <img id="fullScreenImage" alt="Forzaje">
 
@@ -297,16 +266,10 @@
         const gallery = document.getElementById('gallery');
         const touchCounterElement = document.getElementById('touchCounter');
         const fullScreenImage = document.getElementById('fullScreenImage');
-        const configButton = document.getElementById('configButton');
-        const configTrigger = document.getElementById('configTrigger');
         const installButton = document.getElementById('installButton');
 
         // IndexedDB
         let db;
-
-        // Long press timer
-        let longPressTimer = null;
-        const LONG_PRESS_DURATION = 3000; // 3 segundos
 
         function initDB() {
             return new Promise((resolve, reject) => {
@@ -382,7 +345,6 @@
                 sessionId = data.session_id;
 
                 activationScreen.classList.remove('active');
-                configTrigger.classList.add('show');
                 
                 await loadGallery();
 
@@ -544,31 +506,10 @@
             if (e.key === 'Enter') activateBtn.click();
         });
 
-        configButton.addEventListener('click', () => {
+        // Click en contador para abrir configuración
+        touchCounterElement.addEventListener('click', (e) => {
+            e.stopPropagation();
             window.location.href = './config.html';
-        });
-
-        // Long press en esquina superior derecha para mostrar config
-        configTrigger.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            longPressTimer = setTimeout(() => {
-                if (navigator.vibrate) navigator.vibrate(100);
-                window.location.href = './config.html';
-            }, LONG_PRESS_DURATION);
-        });
-
-        configTrigger.addEventListener('touchend', () => {
-            if (longPressTimer) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
-            }
-        });
-
-        configTrigger.addEventListener('touchmove', () => {
-            if (longPressTimer) {
-                clearTimeout(longPressTimer);
-                longPressTimer = null;
-            }
         });
 
         // Init
@@ -584,7 +525,6 @@
                 
                 if (isValid) {
                     activationScreen.classList.remove('active');
-                    configTrigger.classList.add('show');
                     await loadGallery();
                 } else {
                     activationScreen.classList.add('active');
