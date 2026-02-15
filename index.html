@@ -201,20 +201,78 @@
             z-index: 9999;
         }
 
-        /* Botón de instalación */
+        /* Botón de instalación - GIGANTE */
         #installButton {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #4CAF50;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
             color: white;
             border: none;
-            padding: 10px 16px;
+            padding: 30px 50px;
             border-radius: 20px;
-            z-index: 1000;
+            z-index: 10001;
             display: none;
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 24px;
+            font-weight: 700;
+            box-shadow: 0 10px 40px rgba(76, 175, 80, 0.5);
+            cursor: pointer;
+            animation: pulse 2s infinite;
+            text-align: center;
+            max-width: 90%;
+        }
+
+        #installButton::before {
+            content: '📱';
+            display: block;
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        #installButton::after {
+            content: 'Toca para instalar';
+            display: block;
+            font-size: 16px;
+            font-weight: 400;
+            margin-top: 10px;
+            opacity: 0.9;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(1);
+                box-shadow: 0 10px 40px rgba(76, 175, 80, 0.5);
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.05);
+                box-shadow: 0 15px 60px rgba(76, 175, 80, 0.7);
+            }
+        }
+
+        #installButton:active {
+            transform: translate(-50%, -50%) scale(0.95);
+        }
+
+        /* Overlay detrás del botón */
+        #installOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10000;
+            backdrop-filter: blur(10px);
+        }
+
+        #installOverlay.show {
+            display: block;
+        }
+
+        #installButton.show {
+            display: block;
         }
 
         /* Loading spinner */
@@ -240,10 +298,16 @@
     </style>
 </head>
 <body>
+    <!-- Overlay para instalación -->
+    <div id="installOverlay"></div>
+    
+    <!-- Botón de instalación GIGANTE -->
+    <button id="installButton">INSTALAR APP</button>
+
     <!-- Pantalla de activación -->
     <div id="activationScreen" class="active">
         <div class="activation-card">
-            <h1>🎭 Scroll Force</h1>
+            <h1>Scroll Force</h1>
             <p id="activationMessage">Ingresa tu código de activación</p>
             <input 
                 type="text" 
@@ -297,6 +361,7 @@
         const fullScreenImage = document.getElementById('fullScreenImage');
         const configButton = document.getElementById('configButton');
         const installButton = document.getElementById('installButton');
+        const installOverlay = document.getElementById('installOverlay');
         const installHint = document.getElementById('installHint');
         const activationMessage = document.getElementById('activationMessage');
 
@@ -519,14 +584,18 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            installButton.style.display = 'block';
+            installButton.classList.add('show');
+            installOverlay.classList.add('show');
         });
 
         installButton.addEventListener('click', async () => {
             if (!deferredPrompt) return;
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') installButton.style.display = 'none';
+            if (outcome === 'accepted') {
+                installButton.classList.remove('show');
+                installOverlay.classList.remove('show');
+            }
             deferredPrompt = null;
         });
 
