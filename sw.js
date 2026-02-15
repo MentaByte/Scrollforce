@@ -1,4 +1,4 @@
-const CACHE_NAME = 'scroll_force';
+const CACHE_NAME = 'scroll_force_v2';
 const urlsToCache = [
   './',
   './index.html',
