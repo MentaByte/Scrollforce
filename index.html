@@ -259,16 +259,15 @@
             font-size: 20px;
             font-weight: 700;
             cursor: pointer;
-            transition: transform 0.2s;
             box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
-            animation: pulse 2s infinite;
+            animation: pulsebtn 2s infinite;
         }
 
         .install-giant-btn:active {
             transform: scale(0.95);
         }
 
-        @keyframes pulse {
+        @keyframes pulsebtn {
             0%, 100% {
                 transform: scale(1);
                 box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
@@ -395,7 +394,7 @@
     <!-- Pantalla de activación -->
     <div id="activationScreen" class="active">
         <div class="activation-card">
-            <h1> Scroll Force</h1>
+            <h1>🎭 Scroll Force</h1>
             <p id="activationMessage">Ingresa tu código de activación</p>
             <input 
                 type="text" 
@@ -689,14 +688,27 @@
                 alert('Para instalar la app, usa el menú de tu navegador (⋮) y selecciona "Agregar a pantalla de inicio" o "Instalar app"');
                 return;
             }
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                forceInstallScreen.classList.remove('active');
-                configButton.classList.add('show');
-                await loadGallery();
+            
+            try {
+                await deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                
+                // Solo mostrar mensaje de éxito, pero NO cargar la galería
+                if (outcome === 'accepted') {
+                    // Actualizar el mensaje para indicar que debe abrir desde el ícono
+                    const card = document.querySelector('.force-install-card');
+                    card.innerHTML = `
+                        <div class="emoji">✅</div>
+                        <h2>¡App Instalada!</h2>
+                        <p>Ahora cierra esta pestaña y abre Scroll Force desde el ícono en tu pantalla de inicio.</p>
+                    `;
+                }
+                // Si rechazó, la pantalla se queda para que intente de nuevo
+                
+                deferredPrompt = null;
+            } catch (error) {
+                console.error('Error al instalar:', error);
             }
-            deferredPrompt = null;
         });
 
         // Botón flotante (ahora sin uso, pero lo dejamos por si acaso)
@@ -778,11 +790,12 @@
                 if (isValid) {
                     activationScreen.classList.remove('active');
                     
-                    // Si está en navegador, mostrar pantalla de instalación
+                    // SIEMPRE mostrar pantalla de instalación si está en navegador
+                    // NUNCA cargar la galería desde el navegador
                     if (!standalone) {
                         forceInstallScreen.classList.add('active');
                     } else {
-                        // Si está en standalone, cargar galería
+                        // Solo cargar galería si está en modo standalone (app instalada)
                         configButton.classList.add('show');
                         await loadGallery();
                     }
