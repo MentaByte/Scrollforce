@@ -780,24 +780,7 @@
         });
 
         // Restaurar valores por defecto
-        resetBtn.addEventListener('click', async () => {
-            if (confirm('¿Seguro que quieres eliminar todas las imágenes personalizadas?')) {
-                const transaction = db.transaction(['images'], 'readwrite');
-                const store = transaction.objectStore('images');
-                const request = store.clear();
 
-                request.onsuccess = async () => {
-                    forceImageIndex = 4;
-                    forceSelect.value = '4';
-                    localStorage.setItem('forceImageIndex', 4);
-                    await renderImageGrid();
-                    alert('Configuración restaurada');
-                };
-            }
-        });
-
-        // Init
-        document.addEventListener('DOMContentLoaded', async () => {
             await initDB();
 
             // Cargar índice de forzaje guardado
