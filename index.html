@@ -243,8 +243,8 @@
     <!-- Pantalla de activación -->
     <div id="activationScreen" class="active">
         <div class="activation-card">
-            <h1> Scroll Force</h1>
-            <p>Ingresa tu código de activación</p>
+            <h1>🎭 Scroll Force</h1>
+            <p id="activationMessage">Ingresa tu código de activación</p>
             <input 
                 type="text" 
                 id="codeInput" 
@@ -255,6 +255,9 @@
             <button id="activateBtn" class="activate-btn">Activar</button>
             <div class="spinner" id="loadingSpinner"></div>
             <div class="error-message" id="errorMessage"></div>
+            <p id="installHint" style="margin-top: 15px; font-size: 13px; color: #999; display: none;">
+                Después de activar, instala la app en tu pantalla de inicio para un acceso rápido
+            </p>
         </div>
     </div>
 
@@ -294,6 +297,8 @@
         const fullScreenImage = document.getElementById('fullScreenImage');
         const configButton = document.getElementById('configButton');
         const installButton = document.getElementById('installButton');
+        const installHint = document.getElementById('installHint');
+        const activationMessage = document.getElementById('activationMessage');
 
         // IndexedDB
         let db;
@@ -539,13 +544,42 @@
             window.location.href = './config.html';
         });
 
+        // Detectar si está en modo standalone (PWA instalada)
+        function isStandalone() {
+            return window.matchMedia('(display-mode: standalone)').matches ||
+                   window.navigator.standalone ||
+                   document.referrer.includes('android-app://');
+        }
+
         // Init
         document.addEventListener('DOMContentLoaded', async () => {
             await initDB();
             loadConfig();
 
             const savedCode = localStorage.getItem('activationCode');
+            const standalone = isStandalone();
             
+            // Mostrar hint de instalación solo si está en navegador
+            if (!standalone) {
+                installHint.style.display = 'block';
+            }
+            
+            // Si está en modo standalone (PWA instalada) y hay código guardado, saltar login
+            if (standalone && savedCode) {
+                activationCode = savedCode;
+                activationScreen.classList.remove('active');
+                configButton.classList.add('show');
+                await loadGallery();
+                
+                // Entrar en fullscreen después de un breve delay
+                setTimeout(() => {
+                    lockOrientation();
+                    enterFullscreen();
+                }, 500);
+                return;
+            }
+            
+            // Si está en navegador (no standalone), verificar sesión
             if (savedCode) {
                 activationCode = savedCode;
                 const isValid = await validateSession(savedCode);
@@ -561,11 +595,9 @@
                 activationScreen.classList.add('active');
             }
 
-            if (window.matchMedia('(display-mode: standalone)').matches) {
-                setTimeout(() => {
-                    lockOrientation();
-                    enterFullscreen();
-                }, 500);
+            // Si está en standalone sin código guardado, mostrar activación
+            if (standalone && !savedCode) {
+                activationScreen.classList.add('active');
             }
         });
     </script>
