@@ -1,6 +1,6 @@
 {
-  "name": "Emoji Force",
-  "short_name": "Emoji Force",
+  "name": "Scroll Force",
+  "short_name": "Scroll Force",
   "description": "App profesional de forzaje para magos",
   "start_url": "./index.html",
   "display": "standalone",
