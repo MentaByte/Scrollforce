@@ -354,6 +354,10 @@
                 Toca cada cuadro para subir una imagen desde tu galería. La imagen marcada en rojo será la que se forzará después de <span id="touchesInfo">10</span> toques.
             </div>
 
+            <button class="btn btn-primary" id="uploadMultipleBtn" style="margin-bottom: 20px; width: 100%;">
+                📁 Subir Múltiples Imágenes
+            </button>
+
             <div class="image-grid" id="imageGrid"></div>
 
             <div class="force-selector">
@@ -426,7 +430,7 @@
         </div>
     </div>
 
-    <input type="file" id="fileInput" accept="image/*">
+    <input type="file" id="fileInput" accept="image/*" multiple>
 
     <script>
         const TOTAL_IMAGES = 20;
@@ -436,6 +440,7 @@
 
         const imageGrid = document.getElementById('imageGrid');
         const fileInput = document.getElementById('fileInput');
+        const uploadMultipleBtn = document.getElementById('uploadMultipleBtn');
         const forceSelect = document.getElementById('forceSelect');
         const touchThresholdSelect = document.getElementById('touchThresholdSelect');
         const resetBtn = document.getElementById('resetBtn');
@@ -568,19 +573,50 @@
             fileInput.click();
         }
 
-        // Manejar selección de archivo
+        // Manejar selección de archivo(s)
         fileInput.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file || !currentEditingIndex) return;
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
 
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                await saveImage(currentEditingIndex, event.target.result);
+            // Si es para un slot específico (clic en un cuadro)
+            if (currentEditingIndex !== null) {
+                const file = files[0];
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    await saveImage(currentEditingIndex, event.target.result);
+                    await renderImageGrid();
+                    currentEditingIndex = null;
+                    fileInput.value = '';
+                };
+                reader.readAsDataURL(file);
+            } 
+            // Si es subida múltiple (botón "Subir Múltiples Imágenes")
+            else {
+                let uploadCount = 0;
+                
+                // Encontrar los primeros espacios vacíos
+                for (let i = 1; i <= TOTAL_IMAGES && uploadCount < files.length; i++) {
+                    const existingImage = await getImage(i);
+                    if (!existingImage) {
+                        const file = files[uploadCount];
+                        const reader = new FileReader();
+                        
+                        await new Promise((resolve) => {
+                            reader.onload = async (event) => {
+                                await saveImage(i, event.target.result);
+                                resolve();
+                            };
+                            reader.readAsDataURL(file);
+                        });
+                        
+                        uploadCount++;
+                    }
+                }
+                
                 await renderImageGrid();
-                currentEditingIndex = null;
                 fileInput.value = '';
-            };
-            reader.readAsDataURL(file);
+                alert(`${uploadCount} imagen${uploadCount !== 1 ? 'es' : ''} subida${uploadCount !== 1 ? 's' : ''} correctamente`);
+            }
         });
 
         // Eliminar imagen
@@ -590,6 +626,12 @@
                 await renderImageGrid();
             }
         }
+
+        // Botón para subir múltiples imágenes
+        uploadMultipleBtn.addEventListener('click', () => {
+            currentEditingIndex = null; // Indicar que es subida múltiple
+            fileInput.click();
+        });
 
         // Cambiar imagen de forzaje
         forceSelect.addEventListener('change', async (e) => {
