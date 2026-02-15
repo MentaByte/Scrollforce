@@ -397,7 +397,7 @@
     <!-- Pantalla de activación -->
     <div id="activationScreen" class="active">
         <div class="activation-card">
-            <h1>Scroll Force</h1>
+            <h1>🎭 Scroll Force</h1>
             <p id="activationMessage">Ingresa tu código de activación</p>
             <input 
                 type="text" 
@@ -752,6 +752,13 @@
             navigator.serviceWorker.register('./sw.js')
                 .then(() => console.log('SW registrado'))
                 .catch(err => console.log('Error SW:', err));
+        }
+
+        // Detectar si está en modo standalone (PWA instalada)
+        function isStandalone() {
+            return window.matchMedia('(display-mode: standalone)').matches ||
+                   window.navigator.standalone ||
+                   document.referrer.includes('android-app://');
         }
 
         // Init
