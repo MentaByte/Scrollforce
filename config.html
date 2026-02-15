@@ -842,6 +842,11 @@
                     }
                 }
 
+                // 🔒 ACTIVAR CANDADO - Esto bloquea la app permanentemente
+                localStorage.setItem('appLocked', 'true');
+                localStorage.setItem('lockReason', 'logout');
+                localStorage.setItem('lockTimestamp', new Date().toISOString());
+
                 // Limpiar localStorage (mantener configuraciones)
                 localStorage.removeItem('activationCode');
                 localStorage.removeItem('sessionId');
@@ -852,6 +857,12 @@
 
             } catch (error) {
                 console.error('Error al cerrar sesión:', error);
+                
+                // 🔒 ACTIVAR CANDADO incluso si falla el servidor
+                localStorage.setItem('appLocked', 'true');
+                localStorage.setItem('lockReason', 'logout');
+                localStorage.setItem('lockTimestamp', new Date().toISOString());
+                
                 // Aunque falle la llamada al servidor, cerramos localmente
                 localStorage.removeItem('activationCode');
                 localStorage.removeItem('sessionId');
