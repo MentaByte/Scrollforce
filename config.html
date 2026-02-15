@@ -824,10 +824,10 @@
             logoutBtn.disabled = true;
             logoutBtn.textContent = '⏳ Cerrando sesión...';
 
+            const SUPABASE_URL = 'https://zgatennqbagmyfbpiakr.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpnYXRlbm5xYmFnbXlmYnBpYWtyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMTg3NTEsImV4cCI6MjA4NjU5NDc1MX0.5c_IoL3_PM1zwFsuvblkoCoWbP9-4BSaMcIwSasLprw';
+
             try {
-                const SUPABASE_URL = 'https://zgatennqbagmyfbpiakr.supabase.co';
-                const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpnYXRlbm5xYmFnbXlmYnBpYWtyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMTg3NTEsImV4cCI6MjA4NjU5NDc1MX0.5c_IoL3_PM1zwFsuvblkoCoWbP9-4BSaMcIwSasLprw';
-                
                 const response = await fetch(`${SUPABASE_URL}/functions/v1/logout`, {
                     method: 'POST',
                     headers: { 
@@ -843,11 +843,12 @@
                 const data = await response.json();
 
                 if (!response.ok || !data.success) {
-                    throw new Error(data.error || 'Error al cerrar sesión en el servidor');
+                    throw new Error(data.error || 'Error del servidor');
                 }
 
+                // ✅ ÉXITO CONFIRMADO - Ahora sí bloquear localmente
                 console.log('✅ Sesión cerrada en el servidor');
-
+                
                 localStorage.setItem('appLocked', 'true');
                 localStorage.setItem('lockReason', 'logout');
                 localStorage.setItem('lockTimestamp', new Date().toISOString());
@@ -867,7 +868,8 @@
                 alert(
                     '❌ No se pudo cerrar la sesión en el servidor.\n\n' +
                     'Error: ' + error.message + '\n\n' +
-                    'La sesión NO se cerró y puedes seguir usando la app.'
+                    'Por favor, verifica tu conexión a internet e intenta de nuevo.\n\n' +
+                    'La app NO se cerrará hasta confirmar con el servidor.'
                 );
             }
         });
