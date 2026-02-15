@@ -124,15 +124,27 @@
             width: 100vw;
             height: 100vh;
             overflow-y: auto;
+            overflow-x: hidden;
             scroll-snap-type: y mandatory;
             display: flex;
             flex-direction: column;
             -webkit-overflow-scrolling: touch;
         }
 
+        .gallery-container.horizontal {
+            overflow-y: hidden;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            flex-direction: row;
+        }
+
         .gallery {
             display: flex;
             flex-direction: column;
+        }
+
+        .gallery.horizontal {
+            flex-direction: row;
         }
 
         .gallery img {
@@ -482,6 +494,9 @@
             const savedTouchThreshold = localStorage.getItem('touchThreshold');
             const savedCounterOpacity = localStorage.getItem('counterOpacity');
             const savedConfigBtnOpacity = localStorage.getItem('configBtnOpacity');
+            const savedCounterColor = localStorage.getItem('counterColor') || 'white';
+            const savedBgColor = localStorage.getItem('bgColor') || 'black';
+            const savedScrollDirection = localStorage.getItem('scrollDirection') || 'vertical';
             
             if (savedForceIndex) {
                 FORCE_IMAGE_INDEX = parseInt(savedForceIndex);
@@ -496,6 +511,34 @@
             if (savedConfigBtnOpacity) {
                 const opacity = parseInt(savedConfigBtnOpacity) / 100;
                 configButton.style.opacity = opacity;
+            }
+
+            // Aplicar color de fuente del contador
+            if (savedCounterColor === 'white') {
+                touchCounterElement.style.color = '#cccccc';
+            } else {
+                touchCounterElement.style.color = '#333333';
+                touchCounterElement.style.backgroundColor = 'rgba(255, 255, 255, 0.7)';
+            }
+
+            // Aplicar color de fondo
+            if (savedBgColor === 'white') {
+                document.body.style.backgroundColor = '#ffffff';
+                galleryContainer.style.backgroundColor = '#ffffff';
+                fullScreenImage.style.backgroundColor = '#ffffff';
+            } else {
+                document.body.style.backgroundColor = '#000000';
+                galleryContainer.style.backgroundColor = '#000000';
+                fullScreenImage.style.backgroundColor = '#000000';
+            }
+
+            // Aplicar dirección del scroll
+            if (savedScrollDirection === 'horizontal') {
+                galleryContainer.classList.add('horizontal');
+                gallery.classList.add('horizontal');
+            } else {
+                galleryContainer.classList.remove('horizontal');
+                gallery.classList.remove('horizontal');
             }
         }
 
@@ -617,31 +660,116 @@
             });
         }
 
-        // Cargar galería
+        // Cargar galería con scroll bidireccional infinito
         async function loadGallery() {
             gallery.innerHTML = '';
 
+            // Cargar imágenes: duplicamos al inicio (reverso) y al final (adelante)
+            // Estructura: [20, 19, ..., 1] [1, 2, ..., 20] [1, 2, ..., 20]
+            
+            // Primero añadimos las imágenes en reverso (para scroll hacia atrás)
+            for (let i = TOTAL_IMAGES; i >= 1; i--) {
+                const img = document.createElement('img');
+                img.src = await getImageSrc(i);
+                img.alt = `Imagen ${i}`;
+                img.dataset.imageIndex = i;
+                img.dataset.section = 'before';
+                gallery.appendChild(img);
+            }
+
+            // Luego las imágenes principales
             for (let i = 1; i <= TOTAL_IMAGES; i++) {
                 const img = document.createElement('img');
                 img.src = await getImageSrc(i);
                 img.alt = `Imagen ${i}`;
+                img.dataset.imageIndex = i;
+                img.dataset.section = 'main';
+                gallery.appendChild(img);
+            }
+
+            // Luego las imágenes para scroll hacia adelante
+            for (let i = 1; i <= TOTAL_IMAGES; i++) {
+                const img = document.createElement('img');
+                img.src = await getImageSrc(i);
+                img.alt = `Imagen ${i}`;
+                img.dataset.imageIndex = i;
+                img.dataset.section = 'after';
                 gallery.appendChild(img);
             }
 
             fullScreenImage.src = await getImageSrc(FORCE_IMAGE_INDEX);
+
+            // Posicionar en la primera imagen de la sección principal
+            setTimeout(() => {
+                const scrollDirection = localStorage.getItem('scrollDirection') || 'vertical';
+                const mainSection = Array.from(gallery.children).find(img => 
+                    img.dataset.section === 'main' && img.dataset.imageIndex === '1'
+                );
+                
+                if (mainSection) {
+                    if (scrollDirection === 'horizontal') {
+                        galleryContainer.scrollLeft = mainSection.offsetLeft;
+                    } else {
+                        galleryContainer.scrollTop = mainSection.offsetTop;
+                    }
+                }
+            }, 100);
         }
 
-        // Bucle infinito
+        // Bucle infinito bidireccional
         function loopGallery() {
-            const scrollTop = galleryContainer.scrollTop;
-            const totalHeight = gallery.scrollHeight - galleryContainer.clientHeight;
-
-            if (scrollTop >= totalHeight - 10) {
-                const images = Array.from(gallery.children);
-                images.forEach(img => {
-                    const clone = img.cloneNode(true);
-                    gallery.appendChild(clone);
-                });
+            const scrollDirection = localStorage.getItem('scrollDirection') || 'vertical';
+            const images = Array.from(gallery.children);
+            const imageSize = scrollDirection === 'horizontal' ? window.innerWidth : window.innerHeight;
+            
+            if (scrollDirection === 'horizontal') {
+                const scrollLeft = galleryContainer.scrollLeft;
+                const totalWidth = gallery.scrollWidth;
+                const containerWidth = galleryContainer.clientWidth;
+                
+                // Si llegamos casi al final (scroll hacia adelante)
+                if (scrollLeft >= totalWidth - containerWidth - imageSize) {
+                    const firstMainImage = images.find(img => 
+                        img.dataset.section === 'main' && img.dataset.imageIndex === '1'
+                    );
+                    if (firstMainImage) {
+                        galleryContainer.scrollLeft = firstMainImage.offsetLeft;
+                    }
+                }
+                
+                // Si llegamos casi al inicio (scroll hacia atrás)
+                if (scrollLeft <= imageSize) {
+                    const lastMainImage = images.filter(img => 
+                        img.dataset.section === 'main'
+                    ).pop();
+                    if (lastMainImage) {
+                        galleryContainer.scrollLeft = lastMainImage.offsetLeft;
+                    }
+                }
+            } else {
+                const scrollTop = galleryContainer.scrollTop;
+                const totalHeight = gallery.scrollHeight;
+                const containerHeight = galleryContainer.clientHeight;
+                
+                // Si llegamos casi al final (scroll hacia abajo)
+                if (scrollTop >= totalHeight - containerHeight - imageSize) {
+                    const firstMainImage = images.find(img => 
+                        img.dataset.section === 'main' && img.dataset.imageIndex === '1'
+                    );
+                    if (firstMainImage) {
+                        galleryContainer.scrollTop = firstMainImage.offsetTop;
+                    }
+                }
+                
+                // Si llegamos casi al inicio (scroll hacia arriba)
+                if (scrollTop <= imageSize) {
+                    const lastMainImage = images.filter(img => 
+                        img.dataset.section === 'main'
+                    ).pop();
+                    if (lastMainImage) {
+                        galleryContainer.scrollTop = lastMainImage.offsetTop;
+                    }
+                }
             }
         }
 
