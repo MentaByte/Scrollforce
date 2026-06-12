@@ -121,14 +121,14 @@
       
       xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
-          if (xhr.status === 200) {
-            try {
-              var result = JSON.parse(xhr.responseText);
-              callback(null, result);
-            } catch (e) {
-              callback(e, null);
-            }
-          } else {
+          if (xhr.status === 0) {
+            callback(new Error("Error de conexión"), null);
+            return;
+          }
+          try {
+            var result = JSON.parse(xhr.responseText);
+            callback(null, result);
+          } catch (e) {
             callback(new Error("Error de conexión"), null);
           }
         }
