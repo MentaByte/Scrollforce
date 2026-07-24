@@ -145,6 +145,50 @@
       localStorage.setItem("last_known_status", "valid");
     }
 
+    function validateSession(callback) {
+      var session_token = localStorage.getItem("session_token");
+      var device_id = getDeviceId();
+
+      if (!session_token) {
+        callback({ valid: false, error: "no_token" });
+        return;
+      }
+
+      var xhr = new XMLHttpRequest();
+
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4) {
+          if (xhr.status === 200) {
+            try {
+              var result = JSON.parse(xhr.responseText);
+
+              if (result.valid === true) {
+                localStorage.setItem("last_known_status", "valid");
+              } else if (result.error === "revoked") {
+                localStorage.setItem("last_known_status", "revoked");
+              }
+
+              callback(result);
+            } catch (e) {
+              callback({ valid: false, no_internet: true });
+            }
+          } else {
+            var lastStatus = localStorage.getItem("last_known_status");
+            if (lastStatus === "revoked") {
+              callback({ valid: false, error: "revoked" });
+            } else {
+              callback({ valid: false, no_internet: true });
+            }
+          }
+        }
+      };
+
+      xhr.open("POST", SUPABASE_URL + "/functions/v1/validate", true);
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.setRequestHeader("Authorization", "Bearer " + SUPABASE_ANON_KEY);
+      xhr.send(JSON.stringify({ session_token: session_token, device_id: device_id }));
+    }
+
     function getQueryParam(name) {
       var url = window.location.href;
       name = name.replace(/[\[\]]/g, '\\$&');
@@ -158,10 +202,29 @@
     var code = getQueryParam("k");
 
     if (!code) {
-      document.querySelector('h1').textContent = 'Acceso no válido';
-      document.querySelector('p').textContent = 'No se proporcionó un código de activación.';
-      document.querySelector('.loader').style.display = 'none';
-      document.querySelector('.icon').textContent = '⚠️';
+      var existingToken = localStorage.getItem("session_token");
+      if (existingToken) {
+        // Ya hay una sesión activada en este dispositivo (ej. al reabrir la PWA
+        // instalada, que siempre abre esta página): validar el token en vez de
+        // pedir un código de nuevo.
+        validateSession(function(result) {
+          if (result.valid || result.no_internet) {
+            window.location.replace("./core/");
+          } else if (result.error === "revoked") {
+            window.location.replace("./fenix.html");
+          } else {
+            document.querySelector('h1').textContent = 'Sesión no válida';
+            document.querySelector('p').textContent = 'Necesitas un nuevo código de activación.';
+            document.querySelector('.loader').style.display = 'none';
+            document.querySelector('.icon').textContent = '⚠️';
+          }
+        });
+      } else {
+        document.querySelector('h1').textContent = 'Acceso no válido';
+        document.querySelector('p').textContent = 'No se proporcionó un código de activación.';
+        document.querySelector('.loader').style.display = 'none';
+        document.querySelector('.icon').textContent = '⚠️';
+      }
     } else {
       activateLicense(code, function(error, result) {
         if (error) {
