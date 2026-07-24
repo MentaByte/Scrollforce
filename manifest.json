@@ -2,7 +2,7 @@
   "name": "Scroll Force",
   "short_name": "Scroll Force",
   "description": "App profesional de forzaje para magos",
-  "start_url": "./",
+  "start_url": "./core/",
   "scope": "./",
   "display": "standalone",
   "background_color": "#ed733c",
